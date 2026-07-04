@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IGNITO — National Techfest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0a0d1a;
+  --void-2:#11152a;
+  --void-3:#171c38;
+  --violet:#6c4ce0;
+  --violet-soft:#8b72e8;
+  --flare:#ff6b4a;
+  --flare-soft:#ff8c6a;
+  --cyan:#4cd4e0;
+  --stardust:#f1eefb;
+  --grey:#a8a4c4;
+  --line: rgba(168,164,196,0.16);
+  --line-strong: rgba(168,164,196,0.32);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--void);
+  color:var(--stardust);
+  font-family:'Inter',sans-serif;
+  overflow-x:hidden;
+  position:relative;
+}
+::selection{background:var(--violet);color:var(--stardust);}
+h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;letter-spacing:-0.01em;}
+.mono{font-family:'JetBrains Mono',monospace;}
+a{color:inherit;text-decoration:none;}
+img{max-width:100%;display:block;}
+.wrap{max-width:1240px;margin:0 auto;padding:0 32px;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+
+/* ---------- starfield ---------- */
+/* z-order across the whole page: section bg photos (0) < twinkling stars (1) < grain (2) < all section content (3) */
+#starfield{position:fixed;inset:0;z-index:1;pointer-events:none;background:transparent;}
+.grain{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- per-section background photos ---------- */
+/* Drop your exported Figma images into /assets and swap the src="" values in the HTML below —
+   the twinkling star canvas sits on top of these automatically, no CSS edits needed. */
+.section-bg{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
+.section-bg img{width:100%;height:100%;object-fit:cover;display:block;opacity:.85;}
+.section-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,26,.15) 0%,rgba(10,13,26,.55) 65%,var(--void) 100%);}
+.section-bg.fade-both::after{background:linear-gradient(180deg,var(--void) 0%,rgba(10,13,26,.35) 18%,rgba(10,13,26,.35) 78%,var(--void) 100%);}
+
+/* ---------- trajectory rail (signature element) ---------- */
+#rail{
+  position:fixed; left:28px; top:50%; transform:translateY(-50%);
+  z-index:40; display:flex; flex-direction:column; align-items:center;
+  height:280px; justify-content:space-between;
+}
+#rail .track{position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--line-strong);transform:translateX(-50%);}
+#rail .progress{position:absolute;top:0;left:50%;width:1px;background:linear-gradient(var(--cyan),var(--violet));transform:translateX(-50%);height:0%;transition:height .1s linear;}
+.rail-node{position:relative;z-index:2;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.rail-dot{width:9px;height:9px;border-radius:50%;background:var(--void-2);border:1px solid var(--line-strong);transition:all .3s ease;flex-shrink:0;}
+.rail-node.active .rail-dot{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 12px var(--cyan);}
+.rail-label{font-size:10px;letter-spacing:.14em;color:var(--grey);white-space:nowrap;opacity:0;transform:translateX(-6px);transition:all .3s ease;text-transform:uppercase;}
+.rail-node.active .rail-label{opacity:1;transform:translateX(0);color:var(--stardust);}
+@media (max-width:900px){#rail{display:none;}}
+
+/* ---------- navbar ---------- */
+header{position:fixed;top:0;left:0;right:0;z-index:50;transition:all .4s ease;padding:22px 0;}
+header.scrolled{padding:14px 0;background:rgba(10,13,26,0.75);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);}
+nav{display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk';font-weight:700;font-size:22px;letter-spacing:.02em;}
+.logo .logo-icon{width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 0 12px rgba(108,76,224,.5);}
+footer .logo .logo-icon{width:22px;height:22px;}
+.nav-links{display:flex;gap:36px;align-items:center;}
+.nav-links a{font-size:13px;letter-spacing:.06em;color:var(--grey);text-transform:uppercase;position:relative;transition:color .25s;}
+.nav-links a .stage-num{color:var(--violet-soft);margin-right:6px;font-family:'JetBrains Mono';}
+.nav-links a:hover{color:var(--stardust);}
+.cta-btn{
+  border:1px solid var(--cyan); color:var(--cyan); padding:10px 22px; border-radius:100px;
+  font-size:12px; letter-spacing:.1em; text-transform:uppercase; transition:all .3s ease; position:relative; overflow:hidden;
+}
+.cta-btn:hover{background:var(--cyan);color:var(--void);box-shadow:0 0 24px rgba(76,212,224,.5);}
+.burger{display:none;flex-direction:column;gap:5px;}
+.burger span{width:22px;height:2px;background:var(--stardust);}
+@media (max-width:860px){
+  .nav-links{display:none;}
+  .burger{display:flex;}
+}
+
+/* mobile overlay */
+#mobile-nav{position:fixed;inset:0;background:var(--void);z-index:100;display:none;flex-direction:column;justify-content:center;align-items:flex-start;padding:40px;gap:28px;}
+#mobile-nav.open{display:flex;}
+#mobile-nav a{font-family:'Space Grotesk';font-size:32px;font-weight:600;}
+#mobile-nav .close-btn{position:absolute;top:26px;right:28px;font-size:28px;}
+
+section{position:relative;}
+/* every direct child of a section sits above the bg photo + stars + grain by default */
+section > *{position:relative;z-index:3;}
+.section-bg{z-index:0;} /* class specificity overrides the rule above */
+
+/* ---------- hero ---------- */
+#home{min-height:100vh;display:flex;align-items:center;padding:140px 0 80px;position:relative;}
+.orbit-ring{position:absolute;right:-120px;top:50%;transform:translateY(-50%);width:640px;height:640px;border:1px solid var(--line);border-radius:50%;opacity:.6;}
+.orbit-ring::before{content:'';position:absolute;inset:60px;border:1px solid var(--line);border-radius:50%;}
+.orbit-ring::after{content:'';position:absolute;width:10px;height:10px;background:var(--flare);border-radius:50%;top:-5px;left:calc(50% - 5px);box-shadow:0 0 16px var(--flare);animation:spin 18s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg) translateX(0) rotate(0deg);}}
+.orbit-ring{animation:none;}
+.orbit-ring::after{animation:orbitspin 14s linear infinite;transform-origin:320px 320px;}
+@keyframes orbitspin{from{transform:rotate(0deg) translate(320px) rotate(0deg);}to{transform:rotate(360deg) translate(320px) rotate(-360deg);}}
+@media (max-width:900px){.orbit-ring{display:none;}}
+
+.eyebrow{font-family:'JetBrains Mono';font-size:12px;letter-spacing:.18em;color:var(--cyan);text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:22px;}
+.eyebrow::before{content:'';width:26px;height:1px;background:var(--cyan);}
+
+/* floating dummy photo (astronaut, crew shot, etc.) — position per-section below */
+.astronaut-float{position:absolute;border-radius:14px;overflow:hidden;border:1px solid var(--line-strong);background:#000;box-shadow:0 20px 50px rgba(0,0,0,.5);}
+.astronaut-float img{width:100%;height:100%;object-fit:cover;display:block;}
+#home .astronaut-float{width:150px;height:150px;right:40px;bottom:110px;}
+#events .wrap{position:relative;}
+#events .astronaut-float{width:130px;height:110px;left:32px;top:-64px;}
+@media (max-width:900px){#home .astronaut-float{display:none;}}
+@media (max-width:700px){.astronaut-float{position:static;width:110px;height:100px;margin-bottom:20px;}}
+
+/* small decorative photo tile used above a section heading */
+.section-head{position:relative;}
+.section-photo{position:absolute;top:-64px;left:0;width:130px;height:110px;border-radius:14px;overflow:hidden;border:1px solid var(--line-strong);}
+.section-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+@media (max-width:700px){.section-photo{position:static;margin-bottom:20px;}}
+.hero-title{font-size:clamp(58px,10vw,132px);font-weight:700;line-height:.92;background:linear-gradient(120deg,#fff 20%,var(--violet-soft) 60%,var(--cyan) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:18px;}
+.hero-sub{font-size:clamp(15px,2vw,19px);color:var(--grey);max-width:560px;line-height:1.6;margin-bottom:38px;}
+.hero-ctas{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:56px;}
+.btn-primary{background:linear-gradient(120deg,var(--flare),var(--violet));color:#fff;padding:15px 30px;border-radius:100px;font-size:14px;font-weight:600;letter-spacing:.03em;transition:transform .3s ease, box-shadow .3s ease;display:inline-flex;align-items:center;gap:8px;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(108,76,224,.35);}
+.btn-ghost{border:1px solid var(--line-strong);padding:15px 28px;border-radius:100px;font-size:14px;color:var(--stardust);transition:all .3s ease;}
+.btn-ghost:hover{border-color:var(--cyan);color:var(--cyan);}
+
+.countdown{display:flex;gap:18px;}
+.cd-block{display:flex;flex-direction:column;align-items:center;min-width:64px;}
+.cd-num{font-family:'JetBrains Mono';font-size:30px;font-weight:600;color:var(--stardust);background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:10px;padding:10px 0;width:100%;text-align:center;}
+.cd-label{font-size:10px;letter-spacing:.14em;color:var(--grey);margin-top:8px;text-transform:uppercase;}
+
+.scroll-cue{position:absolute;bottom:36px;left:32px;display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono';font-size:11px;letter-spacing:.1em;color:var(--grey);text-transform:uppercase;}
+.scroll-cue .line{width:1px;height:34px;background:var(--line-strong);position:relative;overflow:hidden;}
+.scroll-cue .line::after{content:'';position:absolute;top:-100%;left:0;width:100%;height:100%;background:var(--cyan);animation:fall 2s infinite;}
+@keyframes fall{to{top:100%;}}
+
+/* ---------- section heading pattern ---------- */
+.section-head{max-width:640px;margin-bottom:64px;}
+.section-head h2{font-size:clamp(36px,5vw,56px);font-weight:700;margin-bottom:16px;}
+.section-head p{color:var(--grey);font-size:16px;line-height:1.7;}
+.section-pad{padding:130px 0;}
+
+/* ---------- briefing / stats ---------- */
+#briefing{border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);}
+.stat-cell{background:var(--void);padding:36px 28px;}
+.stat-num{font-family:'JetBrains Mono';font-size:clamp(30px,4vw,44px);color:var(--cyan);font-weight:600;}
+.stat-label{margin-top:8px;font-size:12px;color:var(--grey);letter-spacing:.06em;text-transform:uppercase;}
+@media (max-width:760px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+
+/* ---------- filter tabs ---------- */
+.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:44px;}
+.tab{padding:9px 20px;border:1px solid var(--line-strong);border-radius:100px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);transition:all .25s ease;}
+.tab.active,.tab:hover{border-color:var(--violet-soft);color:var(--stardust);background:rgba(108,76,224,.12);}
+
+/* ---------- cards grid ---------- */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+@media (max-width:960px){.grid{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:640px){.grid{grid-template-columns:1fr;}}
+
+.card{
+  background:linear-gradient(180deg,var(--void-2),var(--void));
+  border:1px solid var(--line); border-radius:18px; padding:28px;
+  position:relative; overflow:hidden; transition:transform .35s ease, border-color .35s ease, box-shadow .35s ease;
+  opacity:0; transform:translateY(28px);
+}
+.card.in-view{opacity:1;transform:translateY(0);}
+.card::before{content:'';position:absolute;inset:0;background:radial-gradient(400px circle at var(--mx,50%) var(--my,0%),rgba(255,107,74,.12),transparent 60%);opacity:0;transition:opacity .4s ease;}
+.card:hover::before{opacity:1;}
+.card:hover{transform:translateY(-6px);border-color:var(--line-strong);box-shadow:0 20px 50px rgba(0,0,0,.4);}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;}
+.card-icon{width:44px;height:44px;border-radius:12px;background:rgba(108,76,224,.15);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:20px;}
+.tag{font-family:'JetBrains Mono';font-size:10px;letter-spacing:.08em;color:var(--flare-soft);border:1px solid rgba(255,107,74,.35);padding:5px 10px;border-radius:100px;text-transform:uppercase;}
+.card h3{font-size:20px;margin-bottom:10px;font-weight:600;}
+.card p{color:var(--grey);font-size:14px;line-height:1.6;margin-bottom:22px;min-height:66px;}
+.card-meta{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:18px;font-family:'JetBrains Mono';font-size:12px;color:var(--grey);}
+.card-meta .view{color:var(--cyan);display:flex;align-items:center;gap:6px;transition:gap .25s ease;}
+.card:hover .card-meta .view{gap:10px;}
+
+/* competition docking meter */
+.meter{height:4px;background:var(--line);border-radius:4px;overflow:hidden;margin:14px 0 18px;}
+.meter span{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--violet));}
+
+.prize{font-family:'JetBrains Mono';font-size:26px;color:var(--stardust);font-weight:600;}
+.prize span{font-size:12px;color:var(--grey);display:block;font-family:'Inter';letter-spacing:.08em;text-transform:uppercase;margin-top:4px;}
+
+/* featured competition banner */
+.feature-panel{
+  display:grid;grid-template-columns:1.1fr .9fr;gap:0;border:1px solid var(--line-strong);border-radius:20px;overflow:hidden;margin-bottom:40px;
+  background:linear-gradient(120deg,rgba(23,28,56,.82),rgba(17,21,42,.72));
+  backdrop-filter:blur(8px);
+  position:relative;z-index:0; /* new stacking context so fp-bg's negative z-index stays contained inside this panel */
+  opacity:0;transform:translateY(28px);transition:all .6s ease;
+}
+.feature-panel.in-view{opacity:1;transform:translateY(0);}
+.feature-panel .fp-bg{position:absolute;inset:0;z-index:-1;}
+.feature-panel .fp-bg img{width:100%;height:100%;object-fit:cover;opacity:.55;}
+.feature-panel .fp-left{padding:48px;}
+.feature-panel .fp-right{padding:48px;border-left:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;gap:22px;}
+@media (max-width:800px){.feature-panel{grid-template-columns:1fr;}.feature-panel .fp-right{border-left:none;border-top:1px solid var(--line);}}
+.flare-tag{color:var(--flare-soft);font-family:'JetBrains Mono';font-size:11px;letter-spacing:.14em;text-transform:uppercase;display:inline-block;margin-bottom:16px;}
+
+/* crew */
+.crew-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;}
+@media (max-width:900px){.crew-grid{grid-template-columns:repeat(2,1fr);}}
+.crew-card{opacity:0;transform:translateY(20px);transition:all .5s ease;}
+.crew-card.in-view{opacity:1;transform:translateY(0);}
+.crew-photo{width:100%;aspect-ratio:3/4;border-radius:16px;overflow:hidden;border:1px solid var(--line-strong);margin-bottom:16px;background:var(--void-2);}
+.crew-photo img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s ease;}
+.crew-card:hover .crew-photo img{transform:scale(1.06);}
+.crew-card h4{font-size:15px;margin-bottom:4px;}
+.crew-card p{font-size:12px;color:var(--grey);}
+
+/* ---------- contact ---------- */
+#contact .wrap{display:grid;grid-template-columns:1fr 1fr;gap:70px;}
+@media (max-width:860px){#contact .wrap{grid-template-columns:1fr;}}
+.field{margin-bottom:22px;}
+.field label{display:block;font-size:11px;letter-spacing:.1em;color:var(--grey);text-transform:uppercase;margin-bottom:10px;}
+.field input,.field textarea{
+  width:100%;background:rgba(17,21,42,.45);backdrop-filter:blur(6px);border:1px solid var(--line-strong);border-radius:10px;padding:14px 16px;color:var(--stardust);font-family:'Inter';font-size:14px;transition:border-color .25s;
+}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--cyan);}
+.field textarea{resize:vertical;min-height:110px;}
+.transmit-btn{background:var(--cyan);color:var(--void);padding:15px 32px;border-radius:100px;font-weight:600;font-size:14px;letter-spacing:.03em;transition:all .3s;}
+.transmit-btn:hover{box-shadow:0 0 26px rgba(76,212,224,.5);transform:translateY(-2px);}
+.contact-info-item{display:flex;gap:16px;align-items:flex-start;padding:22px 0;border-bottom:1px solid var(--line);}
+.contact-info-item .ci-icon{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--cyan);}
+.contact-info-item h4{font-size:14px;margin-bottom:4px;}
+.contact-info-item p{font-size:13px;color:var(--grey);}
+.socials{display:flex;gap:12px;margin-top:24px;}
+.socials a{width:40px;height:40px;border:1px solid var(--line-strong);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .25s;}
+.socials a:hover{border-color:var(--cyan);color:var(--cyan);}
+
+/* success toast */
+#toast{
+  position:fixed; top:30px; left:50%;
+  transform:translateX(-50%) translateY(-160%);
+  background:var(--void-2); border:1px solid var(--cyan); color:var(--stardust);
+  padding:14px 26px; border-radius:100px; font-size:13px;
+  z-index:9999;
+  transition:transform .4s ease;
+  font-family:'JetBrains Mono';
+  box-shadow:0 0 30px rgba(76,212,224,.45);
+  pointer-events:none;
+}
+#toast.show{transform:translateX(-50%) translateY(0);pointer-events:auto;}
+footer{border-top:1px solid var(--line);padding:50px 0 30px;}
+footer .foot-top{display:flex;justify-content:space-between;flex-wrap:wrap;gap:24px;margin-bottom:34px;}
+footer .foot-bottom{display:flex;justify-content:space-between;font-size:12px;color:var(--grey);flex-wrap:wrap;gap:10px;border-top:1px solid var(--line);padding-top:24px;}
+.foot-links{display:flex;gap:26px;flex-wrap:wrap;}
+.foot-links a{font-size:13px;color:var(--grey);}
+.foot-links a:hover{color:var(--stardust);}
+
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease;}
+.reveal.in-view{opacity:1;transform:translateY(0);}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none!important;transition:none!important;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<div class="grain"></div>
+
+<!-- trajectory rail -->
+<div id="rail">
+  <div class="track"></div>
+  <div class="progress" id="railProgress"></div>
+  <div class="rail-node active" data-target="home"><span class="rail-dot"></span><span class="rail-label mono">01 · Launch</span></div>
+  <div class="rail-node" data-target="events"><span class="rail-dot"></span><span class="rail-label mono">02 · Orbit</span></div>
+  <div class="rail-node" data-target="competitions"><span class="rail-dot"></span><span class="rail-label mono">03 · Docking</span></div>
+  <div class="rail-node" data-target="contact"><span class="rail-dot"></span><span class="rail-label mono">04 · Transmission</span></div>
+</div>
+
+<header id="siteHeader">
+  <div class="wrap">
+    <nav>
+      <div class="logo"><img class="logo-icon" src="assets/logo-icon.png" alt="IGNITO logo"> IGNITO<span style="color:var(--grey);font-weight:400;font-size:12px;margin-left:6px;">'26</span></div>
+      <div class="nav-links">
+        <a href="#home"><span class="stage-num">01</span>Home</a>
+        <a href="#events"><span class="stage-num">02</span>Events</a>
+        <a href="#competitions"><span class="stage-num">03</span>Competitions</a>
+        <a href="#crew"><span class="stage-num">04</span>Crew</a>
+        <a href="#contact"><span class="stage-num">05</span>Contact</a>
+      </div>
+      <a href="#contact" class="cta-btn" style="display:inline-block;">Register</a>
+      <button class="burger" id="burgerBtn"><span></span><span></span><span></span></button>
+    </nav>
+  </div>
+</header>
+
+<div id="mobile-nav">
+  <button class="close-btn" id="closeMobileNav">✕</button>
+  <a href="#home" class="mobile-link">Home</a>
+  <a href="#events" class="mobile-link">Events</a>
+  <a href="#competitions" class="mobile-link">Competitions</a>
+  <a href="#crew" class="mobile-link">Crew</a>
+  <a href="#contact" class="mobile-link">Contact</a>
+</div>
+
+<!-- HOME -->
+<section id="home">
+  <!-- replace assets/bg-hero.jpg with your Figma export -->
+  <div class="section-bg"><img src="assets/bg-hero.jpg" alt=""></div>
+  <div class="orbit-ring"></div>
+  <div class="wrap">
+    <div class="eyebrow mono">Stage 01 — Launch Window Open</div>
+    <h1 class="hero-title">IGNITO</h1>
+    <p class="hero-sub">The national techfest of the Indus Institute of Technology. Three days. Twelve orbits of competition. One mission — push the frontier of what students can build.</p>
+    <div class="hero-ctas">
+      <a href="#events" class="btn-primary">Explore Events →</a>
+      <a href="#competitions" class="btn-ghost">View Manifest</a>
+    </div>
+    <div class="countdown mono" id="countdown">
+      <div class="cd-block"><div class="cd-num" id="cd-d">00</div><div class="cd-label">Days</div></div>
+      <div class="cd-block"><div class="cd-num" id="cd-h">00</div><div class="cd-label">Hrs</div></div>
+      <div class="cd-block"><div class="cd-num" id="cd-m">00</div><div class="cd-label">Min</div></div>
+      <div class="cd-block"><div class="cd-num" id="cd-s">00</div><div class="cd-label">Sec</div></div>
+    </div>
+  </div>
+  <!-- replace assets/astronaut.png with your Figma export -->
+ 
+  <div class="scroll-cue"><div class="line"></div>Enter Orbit</div>
+</section>
+
+<!-- BRIEFING / STATS -->
+<section id="briefing">
+  <div class="stats-grid">
+    <div class="stat-cell reveal"><div class="stat-num" data-count="42">0</div><div class="stat-label">Events & Comps</div></div>
+    <div class="stat-cell reveal"><div class="stat-num" data-count="6000">0</div><div class="stat-label">Attendees</div></div>
+    <div class="stat-cell reveal"><div class="stat-num" data-count="120">0</div><div class="stat-label">Colleges</div></div>
+    <div class="stat-cell reveal"><div class="stat-num prize-count" data-count="1200000">0</div><div class="stat-label">Prize Pool (₹)</div></div>
+  </div>
+</section>
+
+<!-- EVENTS -->
+<section id="events" class="section-pad">
+  <!-- replace assets/bg-events.jpg with your Figma export -->
+  <div class="section-bg fade-both"><img src="assets/bg-events.jpg" alt=""></div>
+  <div class="wrap">
+    
+    <div class="eyebrow mono">Stage 02 — Orbit</div>
+    <div class="section-head">
+      <h2>Mission Events</h2>
+      <p>From hackathons to robotics duels — pick your trajectory. Every event is a chance to prove your build survives contact with the real world.</p>
+    </div>
+    <div class="tabs" id="eventTabs">
+      <button class="tab active" data-filter="all">All Systems</button>
+      <button class="tab" data-filter="tech">Technical</button>
+      <button class="tab" data-filter="nontech">Non-Technical</button>
+      <button class="tab" data-filter="workshop">Workshops</button>
+    </div>
+    <div class="grid" id="eventsGrid"></div>
+  </div>
+</section>
+
+<!-- COMPETITIONS -->
+<section id="competitions" class="section-pad" style="border-top:1px solid var(--line);">
+  <!-- replace assets/bg-competitions.jpg with your Figma export -->
+  <div class="section-bg fade-both"><img src="assets/bg-competitions.jpg" alt=""></div>
+  <div class="wrap" style="position:relative;">
+    <div class="eyebrow mono">Stage 03 — Docking</div>
+    <div class="section-head">
+      <!-- replace assets/competitions-thumb.jpg with your Figma export -->
+     
+      <h2>Flagship Competitions</h2>
+      <p>High stakes, precision required. Dock successfully and walk away with the pool.</p>
+    </div>
+
+    <div class="feature-panel reveal">
+      <!-- replace assets/bg-competitions.jpg with a dedicated feature image if you'd like a different one -->
+      <div class="fp-bg"><img src="assets/bg-competitions.jpg" alt=""></div>
+      <div class="fp-left">
+        <span class="flare-tag">Flagship · 24 Hours</span>
+        <h3 style="font-size:34px;margin-bottom:16px;">HYPERLOOP HACK</h3>
+        <p style="color:var(--grey);line-height:1.7;margin-bottom:24px;max-width:440px;">Build a working prototype that solves a real logistics problem in under 24 hours, then pitch it to a panel of industry engineers. No idea survives first contact with judges — bring backups.</p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <a href="#contact" class="btn-primary">Register Team</a>
+          <a href="#" class="btn-ghost">Rulebook (PDF)</a>
+        </div>
+      </div>
+      <div class="fp-right">
+        <div><div class="prize">₹3,00,000<span>Total Prize Pool</span></div></div>
+        <div><div class="mono" style="font-size:14px;color:var(--stardust);">Team Size: 2–4</div></div>
+        <div><div class="mono" style="font-size:14px;color:var(--stardust);">Docking Difficulty</div><div class="meter"><span style="width:85%;"></span></div></div>
+        <div><div class="mono" style="font-size:14px;color:var(--stardust);">Registration Closes: 20 Sep</div></div>
+      </div>
+    </div>
+
+    <div class="grid" id="compGrid"></div>
+  </div>
+</section>
+
+<!-- CREW -->
+<section id="crew" class="section-pad" style="border-top:1px solid var(--line);">
+  <!-- replace assets/bg-crew.jpg with your Figma export -->
+  <div class="section-bg fade-both"><img src="assets/bg-crew.jpg" alt=""></div>
+  <div class="wrap">
+    <div class="eyebrow mono">Mission Control</div>
+    <div class="section-head">
+      <h2>Crew & Keynotes</h2>
+      <p>Engineers, founders and researchers beaming in to share what they've learned surviving re-entry.</p>
+    </div>
+    <div class="crew-grid" id="crewGrid"></div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact" class="section-pad" style="border-top:1px solid var(--line);">
+  <!-- replace assets/bg-contact.jpg with your Figma export -->
+  <div class="section-bg fade-both"><img src="assets/bg-contact.jpg" alt=""></div>
+  <div class="wrap">
+    <div style="grid-column:1/-1;" class="section-head">
+      <div class="eyebrow mono">Stage 04 — Transmission</div>
+      <h2>Open a Channel</h2>
+      <p>Questions about registration, sponsorship, or logistics — send a transmission and ground control will respond within 24 hours.</p>
+    </div>
+    <div>
+      <form id="contactForm">
+        <div class="field"><label>Callsign (Name)</label><input type="text" required placeholder="Jane Doe"></div>
+        <div class="field"><label>Frequency (Email)</label><input type="email" required placeholder="jane@college.edu"></div>
+        <div class="field"><label>Message</label><textarea required placeholder="Tell us what you need..."></textarea></div>
+        <button type="submit" class="transmit-btn">Send Transmission →</button>
+      </form>
+    </div>
+    <div>
+      <div class="contact-info-item">
+        <div class="ci-icon">@</div>
+        <div><h4>Email</h4><p>contact@ignito-techfest.in</p></div>
+      </div>
+      <div class="contact-info-item">
+        <div class="ci-icon">☎</div>
+        <div><h4>Phone</h4><p>+91 98765 43210 (Mission Desk)</p></div>
+      </div>
+      <div class="contact-info-item">
+        <div class="ci-icon">◎</div>
+        <div><h4>Launch Site</h4><p>Indus Institute of Technology, Auditorium Block, Sector 4</p></div>
+      </div>
+      <div class="socials">
+        <a href="#">in</a><a href="#">ig</a><a href="#">x</a><a href="#">yt</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="logo" style="font-size:20px;"><img class="logo-icon" src="assets/logo-icon.png" alt="IGNITO logo"> IGNITO</div>
+      <div class="foot-links">
+        <a href="#home">Home</a><a href="#events">Events</a><a href="#competitions">Competitions</a><a href="#crew">Crew</a><a href="#contact">Contact</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 IGNITO Techfest. Dummy content for demo purposes.</span>
+      <span>Designed &amp; built for orbit 🚀</span>
+    </div>
+  </div>
+</footer>
+
+<div id="toast">Transmission received. Ground control will respond shortly.</div>
+
+<script>
+/* ================= STARFIELD ================= */
+const canvas = document.getElementById('starfield');
+const ctx = canvas.getContext('2d');
+let W,H,stars=[];
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function resize(){
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = document.documentElement.scrollHeight;
+  initStars();
+}
+function initStars(){
+  stars = [];
+  const count = Math.floor((W*H)/9000);
+  for(let i=0;i<count;i++){
+    stars.push({
+      x: Math.random()*W,
+      y: Math.random()*H,
+      r: Math.random()*1.4+0.3,
+      base: Math.random()*0.5+0.3,
+      speed: Math.random()*0.02+0.005,
+      phase: Math.random()*Math.PI*2
+    });
+  }
+}
+let t=0;
+function draw(){
+  ctx.clearRect(0,0,W,H); /* transparent — lets each section's own bg photo show through underneath */
+  for(const s of stars){
+    const tw = reduceMotion ? s.base : s.base + Math.sin(t*s.speed*10 + s.phase)*0.35;
+    ctx.globalAlpha = Math.max(0,Math.min(1,tw));
+    ctx.fillStyle = '#f1eefb';
+    ctx.beginPath();
+    ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  t++;
+  if(!reduceMotion) requestAnimationFrame(draw);
+}
+window.addEventListener('resize', resize);
+resize();
+draw();
+if(reduceMotion) draw();
+
+/* ================= HEADER SCROLL ================= */
+const header = document.getElementById('siteHeader');
+window.addEventListener('scroll', ()=>{
+  header.classList.toggle('scrolled', window.scrollY > 40);
+  updateRail();
+});
+
+/* ================= MOBILE NAV ================= */
+const burger = document.getElementById('burgerBtn');
+const mobileNav = document.getElementById('mobile-nav');
+burger.addEventListener('click', ()=> mobileNav.classList.add('open'));
+document.getElementById('closeMobileNav').addEventListener('click', ()=> mobileNav.classList.remove('open'));
+document.querySelectorAll('.mobile-link').forEach(a=>a.addEventListener('click', ()=> mobileNav.classList.remove('open')));
+
+/* ================= TRAJECTORY RAIL ================= */
+const railNodes = document.querySelectorAll('.rail-node');
+const railProgress = document.getElementById('railProgress');
+const railSections = ['home','events','competitions','contact'];
+railNodes.forEach(n=>{
+  n.addEventListener('click', ()=>{
+    document.getElementById(n.dataset.target).scrollIntoView({behavior:'smooth'});
+  });
+});
+function updateRail(){
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = Math.min(1, scrollTop/docHeight);
+  railProgress.style.height = (pct*100)+'%';
+
+  let current = railSections[0];
+  for(const id of railSections){
+    const el = document.getElementById(id);
+    if(el && el.getBoundingClientRect().top < window.innerHeight*0.5) current = id;
+  }
+  railNodes.forEach(n=> n.classList.toggle('active', n.dataset.target===current));
+}
+updateRail();
+
+/* ================= COUNTDOWN ================= */
+const launchDate = new Date();
+launchDate.setDate(launchDate.getDate()+47);
+launchDate.setHours(9,0,0,0);
+function tickCountdown(){
+  const now = new Date();
+  let diff = Math.max(0, launchDate - now);
+  const d = Math.floor(diff/(1000*60*60*24));
+  const h = Math.floor((diff/(1000*60*60))%24);
+  const m = Math.floor((diff/(1000*60))%60);
+  const s = Math.floor((diff/1000)%60);
+  document.getElementById('cd-d').textContent = String(d).padStart(2,'0');
+  document.getElementById('cd-h').textContent = String(h).padStart(2,'0');
+  document.getElementById('cd-m').textContent = String(m).padStart(2,'0');
+  document.getElementById('cd-s').textContent = String(s).padStart(2,'0');
+}
+tickCountdown();
+setInterval(tickCountdown,1000);
+
+/* ================= DUMMY DATA ================= */
+const events = [
+  {cat:'tech', icon:'⚡', tag:'Hackathon', title:'Code Nebula', desc:'A 12-hour build sprint to ship a working MVP around a surprise theme dropped at midnight.', date:'12 Oct', team:'Team of 3'},
+  {cat:'tech', icon:'🤖', tag:'Robotics', title:'Bot Skirmish', desc:'Autonomous bots battle it out in a zero-gravity-styled arena. Last chassis standing wins.', date:'13 Oct', team:'Team of 4'},
+  {cat:'tech', icon:'🛰️', tag:'CTF', title:'Signal Breach', desc:'Capture-the-flag across cryptography, web and reverse engineering challenges.', date:'12 Oct', team:'Solo / Duo'},
+  {cat:'nontech', icon:'🎤', tag:'Debate', title:'Mission Briefing', desc:'Parliamentary-style debate on the ethics of AI in space exploration and beyond.', date:'11 Oct', team:'Solo'},
+  {cat:'nontech', icon:'📸', tag:'Photography', title:'Deep Field', desc:'Capture the campus through a sci-fi lens. Best long-exposure "starscape" wins.', date:'11 Oct', team:'Solo'},
+  {cat:'tech', icon:'🎮', tag:'Game Dev', title:'Zero-G Jam', desc:'48-hour game jam themed around low-gravity mechanics. Ship a playable build.', date:'12–13 Oct', team:'Team of 2'},
+  {cat:'workshop', icon:'🧠', tag:'Workshop', title:'ML Mission Control', desc:'Hands-on workshop building and deploying a small ML model, from data to inference.', date:'11 Oct', team:'Open'},
+  {cat:'workshop', icon:'🔧', tag:'Workshop', title:'Drone Assembly Bay', desc:'Build and fly your own quadcopter from raw components with mentor guidance.', date:'12 Oct', team:'Open'},
+  {cat:'nontech', icon:'🎨', tag:'Design', title:'Cosmic Canvas', desc:'On-the-spot digital art challenge themed around imagined exoplanets.', date:'13 Oct', team:'Solo'},
+];
+
+const comps = [
+  {icon:'🧪', title:'Startup Orbit', desc:'Pitch a startup idea to a panel of VCs and alumni founders for seed-style feedback.', prize:'₹80,000', diff:60},
+  {icon:'📡', title:'Data Descent', desc:'A Kaggle-style data science competition released 72 hours before results are due.', prize:'₹60,000', diff:70},
+  {icon:'🛠️', title:'IoT Payload', desc:'Design a working IoT solution for a real campus problem, judged live on functioning hardware.', prize:'₹50,000', diff:75},
+  {icon:'🧩', title:'Case Cosmos', desc:'Solve a live business case under time pressure, presented to a jury of consultants.', prize:'₹40,000', diff:55},
+  {icon:'🔐', title:'Cyber Vanguard', desc:'Advanced red-team/blue-team cybersecurity simulation across a mock enterprise network.', prize:'₹70,000', diff:80},
+  {icon:'🚁', title:'Aero Trials', desc:'Design, build and fly a fixed-wing glider judged on distance and payload capacity.', prize:'₹45,000', diff:65},
+];
+
+/* replace assets/crew-1..4.jpg with your Figma exports (real headshots) */
+const crew = [
+  {name:'Dr. Ananya Rao', role:'Aerospace Engineer, ISRO Alum', photo:'assets/crew-1.jpg'},
+  {name:'Rohan Verma', role:'Robotics Lead, BuildBots Inc.', photo:'assets/crew-2.jpg'},
+  {name:'Kabir Sen', role:'Founder, OrbitalStack', photo:'assets/crew-3.jpg'},
+  {name:'Meera Iyer', role:'ML Research Lead, DeepField AI', photo:'assets/crew-4.jpg'},
+];
+
+function renderEvents(filter='all'){
+  const grid = document.getElementById('eventsGrid');
+  grid.innerHTML='';
+  events.filter(e=> filter==='all' || e.cat===filter).forEach((e,i)=>{
+    const card = document.createElement('div');
+    card.className='card';
+    card.style.transitionDelay = (i%3)*0.08+'s';
+    card.innerHTML = `
+      <div class="card-top"><div class="card-icon">${e.icon}</div><span class="tag">${e.tag}</span></div>
+      <h3>${e.title}</h3>
+      <p>${e.desc}</p>
+      <div class="card-meta"><span>${e.date} · ${e.team}</span><span class="view">Details →</span></div>
+    `;
+    card.addEventListener('mousemove', ev=>{
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', (ev.clientX-r.left)+'px');
+      card.style.setProperty('--my', (ev.clientY-r.top)+'px');
+    });
+    grid.appendChild(card);
+  });
+  observeReveals();
+}
+renderEvents();
+
+document.getElementById('eventTabs').addEventListener('click', e=>{
+  if(!e.target.classList.contains('tab')) return;
+  document.querySelectorAll('#eventTabs .tab').forEach(t=>t.classList.remove('active'));
+  e.target.classList.add('active');
+  renderEvents(e.target.dataset.filter);
+});
+
+const compGrid = document.getElementById('compGrid');
+comps.forEach((c,i)=>{
+  const card = document.createElement('div');
+  card.className='card';
+  card.style.transitionDelay=(i%3)*0.08+'s';
+  card.innerHTML = `
+    <div class="card-top"><div class="card-icon">${c.icon}</div></div>
+    <h3>${c.title}</h3>
+    <p>${c.desc}</p>
+    <div class="mono" style="font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:.08em;">Docking Difficulty</div>
+    <div class="meter"><span style="width:${c.diff}%;"></span></div>
+    <div class="card-meta"><span class="mono">Prize: ${c.prize}</span><span class="view">Register →</span></div>
+  `;
+  card.addEventListener('mousemove', ev=>{
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--mx', (ev.clientX-r.left)+'px');
+    card.style.setProperty('--my', (ev.clientY-r.top)+'px');
+  });
+  compGrid.appendChild(card);
+});
+
+const crewGrid = document.getElementById('crewGrid');
+crew.forEach((p,i)=>{
+  const card = document.createElement('div');
+  card.className='crew-card';
+  card.style.transitionDelay=(i%4)*0.08+'s';
+  card.innerHTML = `<div class="crew-photo"><img src="${p.photo}" alt="${p.name}"></div><h4>${p.name}</h4><p>${p.role}</p>`;
+  crewGrid.appendChild(card);
+});
+
+/* ================= SCROLL REVEAL ================= */
+function observeReveals(){
+  const els = document.querySelectorAll('.card:not(.in-view), .reveal:not(.in-view), .feature-panel:not(.in-view), .crew-card:not(.in-view)');
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(en=>{
+      if(en.isIntersecting){ en.target.classList.add('in-view'); io.unobserve(en.target); }
+    });
+  }, {threshold:0.15});
+  els.forEach(el=>io.observe(el));
+}
+observeReveals();
+
+/* ================= STAT COUNTERS ================= */
+const counters = document.querySelectorAll('.stat-num');
+const counterIO = new IntersectionObserver((entries)=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting){
+      const el = en.target;
+      const target = parseInt(el.dataset.count,10);
+      let cur = 0;
+      const step = Math.max(1, Math.floor(target/60));
+      const isPrize = el.classList.contains('prize-count');
+      const iv = setInterval(()=>{
+        cur += step;
+        if(cur>=target){ cur=target; clearInterval(iv); }
+        el.textContent = isPrize ? '₹'+(cur/100000).toFixed(1)+'L' : cur.toLocaleString('en-IN');
+      },20);
+      counterIO.unobserve(el);
+    }
+  });
+},{threshold:0.4});
+counters.forEach(c=>counterIO.observe(c));
+
+/* ================= CONTACT FORM ================= */
+document.getElementById('contactForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const toast = document.getElementById('toast');
+  toast.classList.add('show');
+  this.reset();
+  setTimeout(()=> toast.classList.remove('show'), 3200);
+});
+
+/* re-run star canvas resize after content renders (heights may change) */
+setTimeout(resize, 300);
+</script>
+</body>
+</html>
